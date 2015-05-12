@@ -1,180 +1,168 @@
-package Term::YAP;
+package Term::YAP::Process;
 
-use 5.010000;
 use strict;
 use warnings;
+use Moo;
+use Types::Standard qw(Int Bool);
+use Config;
+use Carp qw(confess);
+use Time::HiRes qw(usleep);
+
+extends 'Term::YAP';
 
 =head1 NAME
 
-Term::YAP - show pulsed progress bar in terminal
+Term::YAP::Process - process based subclass of Term::YAP
 
 =cut
 
-use Time::HiRes qw(usleep time);
-
 =head1 SYNOPSIS
 
-    use Siebel::Srvrmgr::Exporter::TermPulse;
-    pulse_start( name => 'Checking', rotate => 0, time => 1 ); # start the pulse
-    sleep 3;
-    pulse_stop()                                               # stop it
+See parent class.
 
 =head1 DESCRIPTION
 
-This module was shamelessly copied from L<Term::Pulse>. Sorry, couldn't get my bug/patch approved. :-)
+This module is a C<fork> base implementation of L<Term::YAP>.
 
-=head1 EXPORT
+=head1 ATTRIBUTES
 
-The following functions are exported by default.
+All from parent class plus the described below.
+
+=head2 child_pid
+
+The PID from the child process created to start the pulse.
+
+This is a read-only attribute and it's value is set after invoking the C<start> method.
+
+=cut
+
+has child_pid => (
+    is     => 'ro',
+    isa    => Int,
+    reader => 'get_child_pid',
+    writer => '_set_child_pid'
+);
+
+=head2 usr1
+
+This class uses a USR1 signal to stop the child process of printing the pulse bar.
+
+This read-only attribute holds the signal number (an integer) that is built during class instantiation depending
+on the platform where is executed.
+
+=cut
+
+has usr1 => (
+    is      => 'ro',
+    isa     => Int,
+    reader  => 'get_usr1',
+    writer  => '_set_usr1',
+    builder => \&_define_signal
+);
+
+=head2 enough
+
+This read-only attribute is a boolean used by the child process to check if it should stop printing the pulse bar.
+
+You probably won't need to use externally this attribute.
+
+=cut
+
+has enough => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 0,
+    reader  => 'is_enough',
+    writer  => '_set_enough'
+);
+
+=head1 METHODS
+
+Some parent methods are overriden:
 
 =over
 
 =item * 
 
-pulse_start
+start
 
 =item *
 
-pulse_stop
+stop
 
 =back
 
-=head1 FUNCTIONS
+And some others are implemented by this class.
 
-=head2 pulse_start()
+=head2 get_usr1
 
-Use this functions to start the pulse. Accept the following arguments:
+Returns the value of C<usr1> attribute.
 
-=over
+=head2 get_child_pid
 
-=item name
-
-A simple message displayed before the pulse. The default value is 'Working'.
-
-=item rotate
-
-Boolean. Rotate the pulse if set to 1. Turn off by default.
-
-=item time
-
-Boolean. Display the elapsed time if set to 1. Turn off by default.
-
-=item size
-
-Set the pulse size. The default value is 16.
-
-=back
+Returns the value of the C<child_pid> attribute.
 
 =cut
 
-my $global_name : shared = undef;
-my $global_start_time : shared = 0;
-my @mark = qw(- \ | / - \ | /);
-$| = 1;
+around start => sub {
 
-my $is_enough : shared = 0;
+    my ( $orig, $self ) = ( shift, shift );
 
-sub init_thread {
-	
-	my $queue = Thread::Queue->new();
-	my $child = threads->create( \&rock_n_roll, $queue );
-	return $queue;
+    my $child_pid = fork();
 
-}
+    if ($child_pid) {
 
-sub pulse_start {
+        #parent
+        $self->_set_child_pid($child_pid);
 
-    my $args_ref = shift;
-    my $name   = defined($args_ref->{name}) ? $args_ref->{name} : 'Working';
-    my $rotate = defined($args_ref->{rotate}) ? $args_ref->{rotate} : 0;
-    my $size   = defined($args_ref->{size}) ? $args_ref->{size} : 16;
-    my $time   = defined($args_ref->{time}) ? $args_ref->{time} : 0;
+    }
+    else {
+        #child
+        $SIG{USR1} = sub { $self->_set_enough(1) };
+        $self->_keep_pulsing();
+        exit 0;
 
-	$args_ref->{queue}->enqueue($name);
-	$args_ref->{queue}->enqueue($rotate);
-	$args_ref->{queue}->enqueue($size);
-	$args_ref->{queue}->enqueue($time);
+    }
 
-}
+};
 
-sub rock_n_roll {
+sub _define_signal {
 
-	my $queue = shift;
+    my %sig_num;
+    unless ( $Config{sig_name} && $Config{sig_num} ) {
+        confess "No sigs?";
+    }
+    else {
+        my @names = split ' ', $Config{sig_name};
+        @sig_num{@names} = split ' ', $Config{sig_num};
 
-    my $name   = $queue->dequeue;
-    my $rotate = $queue->dequeue;
-    my $size   = $queue->dequeue;
-    my $time   = $queue->dequeue;
-	
-    my $start  = time();
+        confess("this platform does not include USR1 signal")
+          unless ( exists( $sig_num{USR1} ) );
 
-    $global_start_time = $start;
-    $global_name       = $name;
-	
-	while (1) {
+        return $sig_num{USR1};
 
-		last if ($is_enough);
-	
-		# forward
-		foreach my $index ( 1 .. $size ) {
-		
-			last if ($is_enough);
-			my $mark = $rotate ? $mark[ $index % 8 ] : q{=};
-			printf "$name...[%s%s%s]", q{ } x ( $index - 1 ), $mark,
-			  q{ } x ( $size - $index );
-			printf " (%f sec elapsed)", ( time - $start ) if $time;
-			printf "\r";
-			usleep 200000;
-		}
-
-		# backward
-		foreach my $index ( 1 .. $size ) {
-		
-			last if ($is_enough);
-			my $mark = $rotate ? $mark[ ( $index % 8 ) * -1 ] : q{=};
-			printf "$name...[%s%s%s]", q{ } x ( $size - $index ), $mark,
-			  q{ } x ( $index - 1 );
-			printf " (%f sec elapsed)", ( time - $start ) if $time;
-			printf "\r";
-			usleep 200000;
-		
-		}
-		
-		last if ($is_enough);
-		
-	}
+    }
 
 }
 
-=head2 pulse_stop()
+around stop => sub {
 
-Stop the pulse and return elapsed time.
+    my ( $orig, $self ) = ( shift, shift );
 
-=cut
+    kill $self->get_usr1(), $self->get_child_pid();
+    usleep(250000);
+    waitpid( $self->get_child_pid(), 0 );
 
-sub pulse_stop {
+    $self->$orig();
 
-    my @list = threads->list(threads::running);
-	
-	foreach my $child(@list) {
-	
-		print 'stopping thread ', $child->tid, "\n";
-	
-		$is_enough = 1;
-		$child->join;
-	
-	}
-	
-	my $length = length($global_name);
-	printf "$global_name%sDone%s\n", q{.} x ( 35 - $length ), q{ } x 43;
+};
 
-	my $elapsed_time = time - $global_start_time;
-	
-	print 'Remaining: ', scalar(threads->list), "\n";
-	
-	return $elapsed_time;	
+around _is_enough => sub {
 
-}
+    my ( $orig, $self ) = ( shift, shift );
+    return $self->is_enough();
+
+};
 
 =head1 SEE ALSO
 
@@ -183,6 +171,14 @@ sub pulse_stop {
 =item *
 
 L<Term::Pulse>
+
+=item *
+
+L<Term::YAP::iThread>
+
+=item *
+
+L<Moo>
 
 =back
 

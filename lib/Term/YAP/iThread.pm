@@ -1,6 +1,5 @@
 package Term::YAP::iThread;
 
-use 5.010000;
 use strict;
 use warnings;
 use Moo;
@@ -26,6 +25,12 @@ See parent class.
 
 Subclass of L<Term::YAP> implemented with ithreads. The pun with it's name is intended.
 
+Despite the limitation of L<http://perldoc.perl.org/threads.html#WARNING|'ithreads'> some platforms (like Microsoft Windows) does not work well
+with process handling of Perl. If you in this case, this implementation of L<Term::YAP> might help you.
+
+If you program code does not handle C<ithreads> correctly, consider initiation a Term::YAP::iThread object in a C<BEGIN> block to avoid loading
+the code that does not support C<ithreads>.
+
 =head1 ATTRIBUTES
 
 Additionally to all attributes from superclass, this class also has the C<queue> attribute.
@@ -36,7 +41,12 @@ Keeps a reference of a L<Thread::Queue> instance. This instance is created autom
 
 =cut
 
-has queue => ( is => 'rw', isa => InstanceOf['Thread::Queue'], reader => 'get_queue', builder => sub { Thread::Queue->new() } );
+has queue => (
+    is      => 'rw',
+    isa     => InstanceOf ['Thread::Queue'],
+    reader  => 'get_queue',
+    builder => sub { Thread::Queue->new() }
+);
 
 =head1 METHODS
 
@@ -62,53 +72,52 @@ The thread will start only after C<start> method is called.
 
 =cut
 
-
 sub BUILD {
 
-	my $self = shift;
-	my $thread = threads->create( sub { $self->_keep_pulsing() }, $self );	
+    my $self = shift;
+    my $thread = threads->create( sub { $self->_keep_pulsing() } );
 
 }
 
 around start => sub {
 
-	my ($orig, $self) = (shift, shift);
-	$self->get_queue()->enqueue(1);
-	return 1;
+    my ( $orig, $self ) = ( shift, shift );
+    $self->get_queue()->enqueue(1);
+    return 1;
 
 };
 
 around _keep_pulsing => sub {
 
-	my ($orig, $self) = (shift, shift);
-	
-	my $start = $self->get_queue()->dequeue();
-	
-	$self->$orig(@_);
+    my ( $orig, $self ) = ( shift, shift );
+
+    my $start = $self->get_queue()->dequeue();
+
+    $self->$orig(@_);
 
 };
 
 around _is_enough => sub {
 
-	my ($orig, $self) = (shift, shift);
-	return $self->get_queue()->dequeue_nb();
+    my ( $orig, $self ) = ( shift, shift );
+    return $self->get_queue()->dequeue_nb();
 
 };
 
 around stop => sub {
 
-	my ($orig, $self) = (shift, shift);
+    my ( $orig, $self ) = ( shift, shift );
 
     my @list = threads->list(threads::running);
-	
-	foreach my $child(@list) {
-	
-		$self->get_queue()->enqueue(1);
-		$child->join;
-	
-	}
-	
-	$self->$orig;
+
+    foreach my $child (@list) {
+
+        $self->get_queue()->enqueue(1);
+        $child->join;
+
+    }
+
+    $self->$orig;
 
 };
 
@@ -123,6 +132,10 @@ L<Term::Pulse>
 =item *
 
 L<Moo>
+
+=item *
+
+L<Term::YAP::Pulse>
 
 =back
 

@@ -29,6 +29,11 @@ our $VERSION = "0.01";
 
 =head1 DESCRIPTION
 
+Term::YAP is a L<Moo> based class to implement a "pulse" bar in a terminal. A pulse bar does not shows any progress of the task being executed
+but at least shows that the program is working instead of showing nothing for user.
+
+This is the parent class and some methods were not implemented, you probably want to look for subclasses to get an implementation.
+
 This module was shamelessly copied from L<Term::Pulse>. Sorry, couldn't get my bug/patch approved. :-)
 
 =head1 EXPORT
