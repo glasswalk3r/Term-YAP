@@ -8,7 +8,7 @@ use Capture::Tiny qw(capture);
 
 my $yap;
 my $tests = 6;
-my $sleep = 5;
+my $sleep = 3;
 
 my %params = (
     name      => 'testing',
@@ -50,12 +50,14 @@ my ( $stdout, $stderr );
 my $stop       = qr/testing\.+Done/;
 my $is_running = 0;
 
+# all those sleep() calls to make sure no output will modify TAP output
+
 ( $stdout, $stderr ) =
-  capture { $is_running = $yap->start; sleep $sleep; $yap->stop };
+  capture { $is_running = $yap->start; sleep $sleep; $yap->stop; sleep $sleep };
 like( $stdout, $stop, 'start/stop methods work' );
 ok( $is_running, 'start() returned true' );
 
 ( $stdout, $stderr ) =
-  capture { $is_running = $yap->start; sleep $sleep; $yap->stop };
+  capture { $is_running = $yap->start; sleep $sleep; $yap->stop; sleep $sleep };
 like( $stdout, $stop, 'start/stop methods work' );
 ok( $is_running, 'start() returned true' );
