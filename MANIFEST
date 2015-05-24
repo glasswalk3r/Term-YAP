@@ -1,6 +1,15 @@
-Changes
-Makefile.PL
-MANIFEST
-README
-t/Term-YAP.t
 lib/Term/YAP.pm
+lib/Term/YAP/iThread.pm
+lib/Term/YAP/Process.pm
+LICENSE
+Makefile.PL
+MANIFEST			This list of files
+README
+README.md
+t/pod-coverage.t
+t/pod.t
+t/Term-YAP-iThread.t
+t/Term-YAP-Process.t
+t/Term-YAP.t
+t/usage.t
+t/visual.t

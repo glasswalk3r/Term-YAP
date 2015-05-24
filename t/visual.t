@@ -15,7 +15,7 @@ unless ( ( exists( $ENV{TERMYAP_DEVEL} ) ) and ( $ENV{TERMYAP_DEVEL} ) ) {
 
 	require Test::Builder;
 	my $test = Test::Builder->new;
-	$test->skip_all('Not a developer machine. Set enviroment variable TERMYAP_DEVEL to 1 if you want to run this test');
+	$test->skip_all('Not a developer machine. Set enviroment variable TERMYAP_DEVEL to 1 and use "perl -Ilib" instead of "prove" if you want to run this test correctly');
 
 } else {
 

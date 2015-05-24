@@ -1,6 +1,5 @@
 package Term::YAP;
 
-use 5.010000;
 use strict;
 use warnings;
 
@@ -15,7 +14,7 @@ use namespace::autoclean;
 use Types::Standard qw(Str Int Bool Num);
 use Time::HiRes qw(usleep time);
 
-our $VERSION = "0.01";
+our $VERSION = "0.02";
 
 =head1 SYNOPSIS
 

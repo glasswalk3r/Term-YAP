@@ -94,6 +94,10 @@ stop
 
 And some others are implemented by this class.
 
+=head2 is_enough
+
+Getter for C<enough> attribute.
+
 =head2 get_usr1
 
 Returns the value of C<usr1> attribute.
@@ -101,6 +105,14 @@ Returns the value of C<usr1> attribute.
 =head2 get_child_pid
 
 Returns the value of the C<child_pid> attribute.
+
+=head2 start
+
+Method overrided from parent class.
+
+This method will use C<fork> to create a child process to create the pulse bar.
+
+The child process will have a signal handler for the USR1 signal to stop the pulse bar.
 
 =cut
 
@@ -144,6 +156,17 @@ sub _define_signal {
     }
 
 }
+
+=head2 stop
+
+Method overrided from parent class.
+
+This method will send a USR1 signal with C<kill> to the child process executing the
+pulse bar.
+
+The child process termination will be handled with C<waitpid>.
+
+=cut
 
 around stop => sub {
 
