@@ -2,11 +2,11 @@ package Term::YAP::Process;
 
 use strict;
 use warnings;
-use Moo;
 use Types::Standard qw(Int Bool);
 use Config;
 use Carp qw(confess);
-use Time::HiRes qw(usleep);
+use Moo;
+use namespace::clean;
 
 extends 'Term::YAP';
 
@@ -126,6 +126,8 @@ around start => sub {
 
         #parent
         $self->_set_child_pid($child_pid);
+        $self->_set_running(1);
+        $self->$orig;
 
     }
     else {
@@ -173,7 +175,7 @@ around stop => sub {
     my ( $orig, $self ) = ( shift, shift );
 
     kill $self->get_usr1(), $self->get_child_pid();
-    usleep(250000);
+    $self->_sleep();
     waitpid( $self->get_child_pid(), 0 );
 
     $self->$orig();

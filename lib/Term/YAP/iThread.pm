@@ -2,14 +2,13 @@ package Term::YAP::iThread;
 
 use strict;
 use warnings;
-use Moo;
 use threads;
 use Thread::Queue;
-use Types::Standard qw(InstanceOf);
+use Types::Standard qw(InstanceOf Bool);
+use Moo;
+use namespace::clean;
 
 extends 'Term::YAP';
-
-#use namespace::autoclean;
 
 =head1 NAME
 
@@ -48,6 +47,20 @@ has queue => (
     builder => sub { Thread::Queue->new() }
 );
 
+=head2 detach
+
+A "private" attribute. Used to control when the created thread is expected to exists it's infinite loop after C<start_pulse> method invocation.
+
+=cut
+
+has detach => (
+    is      => 'rw',
+    isa     => Bool,
+    reader  => '_no_detach',
+    writer  => '_set_detach',
+    default => 1
+);
+
 =head1 METHODS
 
 The following methods are overriden from parent class:
@@ -76,14 +89,24 @@ sub BUILD {
 
     my $self = shift;
     my $thread = threads->create( sub { $self->_keep_pulsing() } );
+    $thread->detach();
 
 }
 
 around start => sub {
 
     my ( $orig, $self ) = ( shift, shift );
-    $self->get_queue()->enqueue(1);
-    return 1;
+    $self->get_queue()->enqueue('start');
+    $self->_sleep();
+    my $status = $self->get_queue()->pending();
+
+    if ( $status == 0 ) {
+        $self->_set_running(1);    #thread dequeued the start string
+    }
+    else {
+        $self->_set_running(0);
+    }
+    $self->$orig;
 
 };
 
@@ -91,35 +114,71 @@ around _keep_pulsing => sub {
 
     my ( $orig, $self ) = ( shift, shift );
 
-    my $start = $self->get_queue()->dequeue();
+    while ( $self->_no_detach() ) {
 
-    $self->$orig(@_);
+        my $task = $self->get_queue()->dequeue();
+
+        if ( $task eq 'start' ) {
+
+            $self->$orig(@_);
+
+        }
+
+    }
 
 };
 
 around _is_enough => sub {
 
     my ( $orig, $self ) = ( shift, shift );
-    return $self->get_queue()->dequeue_nb();
+
+    my $message = $self->get_queue()->dequeue_nb();
+
+    if ( ( defined($message) ) and ( $message eq 'stop' ) ) {
+
+        return 1;
+
+    }
+    else {
+
+        return 0;
+
+    }
 
 };
 
 around stop => sub {
 
     my ( $orig, $self ) = ( shift, shift );
-
-    my @list = threads->list(threads::running);
-
-    foreach my $child (@list) {
-
-        $self->get_queue()->enqueue(1);
-        $child->join;
-
-    }
-
+    $self->get_queue()->enqueue('stop');
     $self->$orig;
 
 };
+
+=pod
+
+=head2 DEMOLISH
+
+This method will take care to "terminated" the L<Thread::Queue> object used to provide communication with the thread.
+
+=cut
+
+sub DEMOLISH {
+
+    my $self = shift;
+    $self->get_queue()->end();
+
+}
+
+=pod
+
+=head1 CAVEATS
+
+To enable usage of this module with code that does not supports L<threads>, this class will create a detached thread as soon as the object
+was created. This thread will remain active until the end of the program, waiting to receive a command to start the pulse (or stop it).
+
+That said, the class will not try to create new threads and will not check if the created thread exited successfully (but it does check if
+the thread is retrieving items from the L<Thread::Queue> object created).
 
 =head1 SEE ALSO
 
@@ -136,6 +195,14 @@ L<Moo>
 =item *
 
 L<Term::YAP::Pulse>
+
+=item *
+
+L<threads>
+
+=item *
+
+L<Thread::Queue>
 
 =back
 

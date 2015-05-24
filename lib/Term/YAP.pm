@@ -9,12 +9,12 @@ Term::YAP - show pulsed progress bar in terminal
 
 =cut
 
-use Moo;
-use namespace::autoclean;
 use Types::Standard qw(Str Int Bool Num);
 use Time::HiRes qw(usleep time);
+use Moo;
+use namespace::clean;
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 =head1 SYNOPSIS
 
@@ -49,7 +49,8 @@ A simple message displayed before the pulse. The default value is 'Working'.
 
 =cut
 
-has name => ( is => 'ro', isa => Str, default => 'Working', reader => 'get_name' );
+has name =>
+  ( is => 'ro', isa => Str, default => 'Working', reader => 'get_name' );
 
 =head2 rotatable
 
@@ -57,7 +58,8 @@ Boolean. Rotates the pulse if set to true. It is false by default.
 
 =cut
 
-has rotatable => ( is => 'ro', isa => Bool, default => 0, reader => 'is_rotatable' );
+has rotatable =>
+  ( is => 'ro', isa => Bool, default => 0, reader => 'is_rotatable' );
 
 =head2 time
 
@@ -74,23 +76,65 @@ Set the pulse size. The default value is 16.
 =cut
 
 has size => ( is => 'ro', isa => Int, default => 16, reader => 'get_size' );
-has start => ( is => 'rw', isa => Num, reader => '_get_start', writer => '_set_start' );
-has usleep => ( is => 'ro', isa => Num, reader => '_get_usleep', default => 200000 );
+
+=head2 start_time
+
+The time (Unix Epoch) that the pulse bar started in seconds.
+
+This attribute is "private".
+
+=cut
+
+has start_time => (
+    is     => 'rw',
+    isa    => Num,
+    reader => '_get_start',
+    writer => '_set_start',
+);
+
+=head2 usleep
+
+The microseconds elapsed that each pulse has between each other. The default value is 200000.
+
+This attribute is "private".
+
+=cut
+
+has usleep =>
+  ( is => 'ro', isa => Num, reader => '_get_usleep', default => 200000 );
+
+=head2 running
+
+Boolean. If true, the pulse was started, false otherwise.
+
+=cut
+
+has running => (
+    is      => 'ro',
+    isa     => Bool,
+    reader  => 'is_running',
+    writer  => '_set_running',
+    default => 0
+);
 
 =head1 METHODS
 
+=head2 is_running
+
+Getter for C<running> attribute.
+
 =head2 BUILD
 
-Install handlers for signals.
+Install handlers for signals C<INT> and C<__DIE__>.
 
 =cut
 
 sub BUILD {
 
-	my $self = shift;
+    my $self = shift;
 
-	$SIG{INT} = sub { $self->stop };
-	#$SIG{__DIE__} = sub { $self->stop };
+    $SIG{INT}     = sub { $self->stop };
+    $SIG{__DIE__} = sub { $self->stop };
 
 }
 
@@ -112,66 +156,69 @@ Returns the value of size attribute.
 
 =head2 start
 
-Starts the pulse.
+Starts the pulse. Returns the value of C<running> attribute.
 
 =cut
 
 sub start {
 
-	die 'start() method must be overrided by subclasses of Term::YAP';
+    my $self = shift;
+    $| = 1;
+    print $self->is_running(), "\n";
+    return $self->is_running();
 
 }
 
 sub _is_enough {
 
-	die '_is_enough() method must be overrided by subclasses of Term::YAP';
+    die '_is_enough() method must be overrided by subclasses of Term::YAP';
 
 }
 
 sub _keep_pulsing {
 
-	my $self = shift;
-	
-	my @mark = qw(- \ | / - \ | /);
-	$| = 1;
-	
+    my $self = shift;
+
+    my @mark = qw(- \ | / - \ | /);
+    $| = 1;
+
     my $name   = $self->get_name();
     my $rotate = $self->is_rotatable();
     my $size   = $self->get_size();
     my $time   = $self->show_time();
     my $start  = time();
-	$self->_set_start($start);
-	
-	INFINITE: while (1) {
+    $self->_set_start($start);
 
-		# forward
-		foreach my $index ( 1 .. $size ) {
+  INFINITE: while (1) {
 
-			my $mark = $rotate ? $mark[ $index % 8 ] : q{=};
-			printf "$name...[%s%s%s]", q{ } x ( $index - 1 ), $mark,
-			  q{ } x ( $size - $index );
-			printf " (%f sec elapsed)", ( time - $start ) if $time;
-			printf "\r";
-			last INFINITE if ($self->_is_enough());			
-			usleep $self->_get_usleep();
-		}
+        # forward
+        foreach my $index ( 1 .. $size ) {
 
-		# backward
-		foreach my $index ( 1 .. $size ) {
-		
-			my $mark = $rotate ? $mark[ ( $index % 8 ) * -1 ] : q{=};
-			printf "$name...[%s%s%s]", q{ } x ( $size - $index ), $mark,
-			  q{ } x ( $index - 1 );
-			printf " (%f sec elapsed)", ( time - $start ) if $time;
-			printf "\r";
-			last INFINITE if ($self->_is_enough());			
-			usleep $self->_get_usleep();
-		
-		}
-		
-	}
-	
-	return (time() - $self->_get_start());
+            my $mark = $rotate ? $mark[ $index % 8 ] : q{=};
+            printf "$name...[%s%s%s]", q{ } x ( $index - 1 ), $mark,
+              q{ } x ( $size - $index );
+            printf " (%f sec elapsed)", ( time - $start ) if $time;
+            printf "\r";
+            last INFINITE if ( $self->_is_enough() );
+            $self->_sleep();
+        }
+
+        # backward
+        foreach my $index ( 1 .. $size ) {
+
+            my $mark = $rotate ? $mark[ ( $index % 8 ) * -1 ] : q{=};
+            printf "$name...[%s%s%s]", q{ } x ( $size - $index ), $mark,
+              q{ } x ( $index - 1 );
+            printf " (%f sec elapsed)", ( time - $start ) if $time;
+            printf "\r";
+            last INFINITE if ( $self->_is_enough() );
+            $self->_sleep();
+
+        }
+
+    }
+
+    return ( time() - $self->_get_start() );
 
 }
 
@@ -183,18 +230,25 @@ Stop the pulse and return elapsed time.
 
 sub stop {
 
-	my $self = shift;
-	return $self->_report;
+    my $self = shift;
+    return $self->_report;
 
 }
 
 sub _report {
 
-	my $self = shift;
-	my $name = $self->get_name();
-	my $length = length($name);
-	printf "$name%sDone%s\n", q{.} x ( 35 - $length ), q{ } x 43;
-	return 1;
+    my $self   = shift;
+    my $name   = $self->get_name();
+    my $length = length($name);
+    printf "$name%sDone%s\n", q{.} x ( 35 - $length ), q{ } x 43;
+    return 1;
+
+}
+
+sub _sleep {
+
+    my $self = shift;
+    usleep( $self->_get_usleep() );
 
 }
 

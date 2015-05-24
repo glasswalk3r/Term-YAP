@@ -7,7 +7,7 @@ use Moose;
 use Capture::Tiny qw(capture);
 
 my $yap;
-my $tests = 4;
+my $tests = 6;
 my $sleep = 5;
 
 my %params = (
@@ -47,10 +47,15 @@ isa_ok( $yap, 'Term::YAP' );
 
 my ( $stdout, $stderr );
 
-my $stop = qr/testing\.+Done/;
+my $stop       = qr/testing\.+Done/;
+my $is_running = 0;
 
-( $stdout, $stderr ) = capture { $yap->start; sleep $sleep; $yap->stop };
-like($stdout, $stop, 'start/stop methods work');
+( $stdout, $stderr ) =
+  capture { $is_running = $yap->start; sleep $sleep; $yap->stop };
+like( $stdout, $stop, 'start/stop methods work' );
+ok( $is_running, 'start() returned true' );
 
-( $stdout, $stderr ) = capture { $yap->start; sleep $sleep; $yap->stop };
-like($stdout, $stop, 'start/stop methods work');
+( $stdout, $stderr ) =
+  capture { $is_running = $yap->start; sleep $sleep; $yap->stop };
+like( $stdout, $stop, 'start/stop methods work' );
+ok( $is_running, 'start() returned true' );

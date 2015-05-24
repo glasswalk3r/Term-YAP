@@ -9,8 +9,8 @@ WriteMakefile(
     PREREQ_PM     => { Moo => "2.000001", 'Type::Tiny' => "1.000005" },
     TEST_REQUIRES => {
         Moose         => "2.1403",
-        Test::Moose   => "2.1403",
-        Capture::Tiny => "0.28",
+        'Test::Moose'   => "2.1403",
+        'Capture::Tiny' => "0.28",
     },
     (
         $] >= 5.005
