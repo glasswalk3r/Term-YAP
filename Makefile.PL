@@ -6,7 +6,10 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME         => 'Term::YAP',
     VERSION_FROM => 'lib/Term/YAP.pm',    # finds $VERSION
-    PREREQ_PM     => { Moo => "2.000001", 'Type::Tiny' => "1.000005" },
+    PREREQ_PM     => { Moo => "2.000001", 
+					   'Type::Tiny' => "1.000005",
+					   'namespace::clean' => "0.25"
+					 },
     TEST_REQUIRES => {
         Moose         => "2.1403",
         'Test::Moose'   => "2.1403",
