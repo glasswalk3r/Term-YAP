@@ -35,7 +35,7 @@ else {
 
     require Term::YAP::Process;
 
-    diag('ithreads NOT available for current perl, using process instead');
+    diag('ithreads NOT available for current perl, using fork() instead');
 
     ok(
         $yap = Term::YAP::Process->new( \%params ),
