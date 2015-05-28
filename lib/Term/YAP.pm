@@ -163,8 +163,6 @@ Starts the pulse. Returns the value of C<running> attribute.
 sub start {
 
     my $self = shift;
-    $| = 1;
-    print $self->is_running(), "\n";
     return $self->is_running();
 
 }

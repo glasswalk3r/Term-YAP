@@ -1,4 +1,4 @@
-use 5.010000;
+use 5.0080000;
 use ExtUtils::MakeMaker;
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
@@ -6,12 +6,13 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME         => 'Term::YAP',
     VERSION_FROM => 'lib/Term/YAP.pm',    # finds $VERSION
-    PREREQ_PM     => { Moo => "2.000001", 
-					   'Type::Tiny' => "1.000005",
-					   'namespace::clean' => "0.25"
-					 },
+    PREREQ_PM    => {
+        Moo                => "2.000001",
+        'Type::Tiny'       => "1.000005",
+        'namespace::clean' => "0.25"
+    },
     TEST_REQUIRES => {
-        Moose         => "2.1403",
+        Moose           => "2.1403",
         'Test::Moose'   => "2.1403",
         'Capture::Tiny' => "0.28",
     },
@@ -24,4 +25,14 @@ WriteMakefile(
           )
         : ()
     ),
+    META_MERGE => {
+        resources => {
+            license    => 'http://www.gnu.org/licenses/gpl.txt',
+            homepage   => 'https://github.com/glasswalk3r/Term-YAP',
+            license    => 'http://www.gnu.org/licenses/gpl.txt',
+            homepage   => 'https://github.com/glasswalk3r/Term-YAP',
+            bugtracker => 'https://github.com/glasswalk3r/Term-YAP/issues',
+            repository => 'https://github.com/glasswalk3r/Term-YAP'
+        },
+    },
 );
