@@ -13,13 +13,16 @@ my %params = (
 
 unless ( ( exists( $ENV{TERMYAP_DEVEL} ) ) and ( $ENV{TERMYAP_DEVEL} ) ) {
 
-	require Test::Builder;
-	my $test = Test::Builder->new;
-	$test->skip_all('Not a developer machine. Set enviroment variable TERMYAP_DEVEL to 1 and use "perl -Ilib" instead of "prove" if you want to run this test correctly');
+    require Test::Builder;
+    my $test = Test::Builder->new;
+    $test->skip_all(
+'Not a developer machine. Set enviroment variable TERMYAP_DEVEL to 1 and use "perl -Ilib" instead of "prove" if you want to run this test correctly'
+    );
 
-} else {
+}
+else {
 
-print <<BLOCK;
+    print <<BLOCK;
 Don't even bother trying to run this with prove... the output will not be the expected one.
 Just use "perl -Ilib" to run this test and be able to see the ASCII animation.
 Since you will be watching... you should see a "pulse bar" running for a while, stopping and starting again once more.
@@ -43,13 +46,16 @@ BLOCK
         $yap = Term::YAP::Process->new( \%params );
 
     }
-	
-    $yap->start();
-	sleep $sleep;
-	$yap->stop();
 
     $yap->start();
-	sleep $sleep;
-	$yap->stop();
+    sleep $sleep;
+    $yap->stop();
+    print "\n";
+    sleep 1;
+    $yap->start();
+    sleep $sleep;
+    $yap->stop();
 
 }
+
+print "\n";

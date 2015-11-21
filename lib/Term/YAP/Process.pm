@@ -2,11 +2,11 @@ package Term::YAP::Process;
 
 use strict;
 use warnings;
-use Types::Standard qw(Int Bool);
+use Types::Standard 1.000005 qw(Int Bool);
 use Config;
 use Carp qw(confess);
-use Moo;
-use namespace::clean;
+use Moo 2.000002;
+use namespace::clean 0.26;
 
 extends 'Term::YAP';
 
@@ -37,10 +37,11 @@ This is a read-only attribute and it's value is set after invoking the C<start> 
 =cut
 
 has child_pid => (
-    is     => 'ro',
-    isa    => Int,
-    reader => 'get_child_pid',
-    writer => '_set_child_pid'
+    is      => 'ro',
+    isa     => Int,
+    reader  => 'get_child_pid',
+    writer  => '_set_child_pid',
+    clearer => 1
 );
 
 =head2 usr1
@@ -76,6 +77,14 @@ has enough => (
     writer  => '_set_enough'
 );
 
+has parent => (
+    is      => 'ro',
+    isa     => Int,
+    default => 0,
+    reader  => 'is_parent',
+    writer  => '_set_parent'
+);
+
 =head1 METHODS
 
 Some parent methods are overriden:
@@ -106,6 +115,10 @@ Returns the value of C<usr1> attribute.
 
 Returns the value of the C<child_pid> attribute.
 
+=head2 is_parent
+
+Getter for C<parent> attribute.
+
 =head2 start
 
 Method overrided from parent class.
@@ -120,19 +133,31 @@ around start => sub {
 
     my ( $orig, $self ) = ( shift, shift );
 
+    if ( $self->is_parent() and $self->get_child_pid() ) {
+
+        confess "no fork() before stopping " . $self->get_child_pid();
+
+    }
+
     my $child_pid = fork();
 
     if ($child_pid) {
 
         #parent
+        print "I'm a parent: $$\n" if ( $self->is_debug );
         $self->_set_child_pid($child_pid);
         $self->_set_running(1);
+        $self->_set_parent(1);
+        print "$$ forked ", $self->get_child_pid, "\n" if ( $self->is_debug );
         $self->$orig;
 
     }
     else {
         #child
-        $SIG{USR1} = sub { $self->_set_enough(1) };
+        print "I'm a child: $$\n" if ( $self->is_debug );
+        $SIG{USR1} = sub {
+            $self->_set_enough(1);
+        };
         $self->_keep_pulsing();
         exit 0;
 
@@ -174,10 +199,34 @@ around stop => sub {
 
     my ( $orig, $self ) = ( shift, shift );
 
-    kill $self->get_usr1(), $self->get_child_pid();
-    $self->_sleep();
-    waitpid( $self->get_child_pid(), 0 );
+    #if not the parent, get out
+    if ( $self->is_parent() ) {
 
+# :WORKAROUND:11/21/2015 07:33:13 PM:: don't know why, this is being called more than once, thus checking if child_pid is defined to avoid errors
+        if ( $self->get_child_pid ) {
+
+            print "$$ preparing to kill ", $self->get_child_pid, "\n"
+              if ( $self->is_debug() );
+            my $count = kill $self->get_usr1(), $self->get_child_pid();
+            if ( $self->is_debug() ) {
+                print "shit, child didn't receive the signal: $count\n"
+                  unless ( $count == 1 );
+            }
+            $self->_sleep();
+            my $pid = waitpid( $self->get_child_pid(), 0 );
+            if ( $self->is_debug ) {
+                if ( $pid == -1 ) {
+                    print "we got a problem\n";
+                }
+                else {
+                    print "child $pid is gone\n";
+                }
+            }
+            $self->clear_child_pid();
+
+        }
+
+    }
     $self->$orig();
 
 };

@@ -2,9 +2,9 @@ use strict;
 use warnings;
 use Test::More;
 use Config;
-use Test::Moose;
-use Moose;
-use Capture::Tiny qw(capture);
+use Test::Moose 2.1604;
+use Moose 2.1604;
+use Capture::Tiny 0.30 qw(capture);
 
 my $yap;
 my $repeat = 5;
@@ -18,6 +18,7 @@ my %params = (
 );
 
 plan tests => $tests;
+$| = 0;
 
 if ( $Config{useithreads} ) {
 

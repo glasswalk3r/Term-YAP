@@ -9,12 +9,10 @@ Term::YAP - show pulsed progress bar in terminal
 
 =cut
 
-use Types::Standard qw(Str Int Bool Num);
-use Time::HiRes qw(usleep time);
-use Moo;
-use namespace::clean;
-
-our $VERSION = "0.03";
+use Types::Standard 1.000005 qw(Str Int Bool Num);
+use Time::HiRes 1.9726 qw(usleep time);
+use Moo 2.000002;
+use namespace::clean 0.26;
 
 =head1 SYNOPSIS
 
@@ -117,6 +115,22 @@ has running => (
     default => 0
 );
 
+=head2 debug
+
+Boolean. If true, additional messages (which you mangle output) will by printed.
+
+Defaults to false.
+
+=cut
+
+has debug => (
+    is      => 'rw',
+    isa     => Bool,
+    reader  => 'is_debug',
+    writer  => 'set_debug',
+    default => 0
+);
+
 =head1 METHODS
 
 =head2 is_running
@@ -157,6 +171,14 @@ Returns the value of size attribute.
 =head2 start
 
 Starts the pulse. Returns the value of C<running> attribute.
+
+=head2 is_debug
+
+Returns the value set of C<debug> attribute.
+
+=head2 set_debug
+
+Setter for the C<debug> attribute.
 
 =cut
 

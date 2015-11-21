@@ -1,8 +1,8 @@
 use strict;
 use warnings;
 use Test::More;
-use Moose;
-use Test::Moose;
+use Moose 2.1604;
+use Test::Moose 2.1604;
 
 BEGIN { use_ok('Term::YAP') }
 

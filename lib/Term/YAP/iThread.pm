@@ -2,11 +2,11 @@ package Term::YAP::iThread;
 
 use strict;
 use warnings;
-use threads;
-use Thread::Queue;
-use Types::Standard qw(InstanceOf Bool);
-use Moo;
-use namespace::clean;
+use threads 3.02;
+use Thread::Queue 3.07;
+use Types::Standard 1.000005 qw(InstanceOf Bool);
+use Moo 2.000002;
+use namespace::clean 0.26;
 
 extends 'Term::YAP';
 
