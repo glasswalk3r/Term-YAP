@@ -2,7 +2,7 @@ package Term::YAP::iThread;
 
 use strict;
 use warnings;
-use threads 3.02;
+use threads 2.02;
 use Thread::Queue 3.07;
 use Types::Standard 1.000005 qw(InstanceOf Bool);
 use Moo 2.000002;
