@@ -249,27 +249,27 @@ Stop the pulse and return elapsed time.
 =cut
 
 sub stop {
-
-    my $self = shift;
-    return $self->_report;
-
+    return shift->_report;
 }
 
 sub _report {
-
     my $self   = shift;
     my $name   = $self->get_name();
     my $length = length($name);
-    printf "$name%sDone%s\n", q{.} x ( 35 - $length ), q{ } x 43;
-    return 1;
 
+    if ( $length > 0 ) {
+        printf "$name%sDone%s\n", q{.} x ( 35 - $length ), q{ } x 43;
+        return 1;
+    }
+    else {
+        warn "cannot print progress without positive length for '$name'";
+        return 0;
+    }
 }
 
 sub _sleep {
-
     my $self = shift;
     usleep( $self->_get_usleep() );
-
 }
 
 =head1 SEE ALSO
