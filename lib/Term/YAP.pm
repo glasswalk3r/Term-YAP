@@ -1,7 +1,8 @@
 package Term::YAP;
-
 use strict;
 use warnings;
+use Carp;
+# VERSION
 
 =head1 NAME
 
@@ -144,12 +145,9 @@ Install handlers for signals C<INT> and C<__DIE__>.
 =cut
 
 sub BUILD {
-
     my $self = shift;
-
     $SIG{INT}     = sub { $self->stop };
     $SIG{__DIE__} = sub { $self->stop };
-
 }
 
 =head2 get_name
@@ -183,25 +181,17 @@ Setter for the C<debug> attribute.
 =cut
 
 sub start {
-
-    my $self = shift;
-    return $self->is_running();
-
+    return shift->is_running();
 }
 
 sub _is_enough {
-
-    die '_is_enough() method must be overrided by subclasses of Term::YAP';
-
+    confess '_is_enough() method must be overrided by subclasses of Term::YAP';
 }
 
 sub _keep_pulsing {
-
     my $self = shift;
-
     my @mark = qw(- \ | / - \ | /);
     $| = 1;
-
     my $name   = $self->get_name();
     my $rotate = $self->is_rotatable();
     my $size   = $self->get_size();
@@ -213,7 +203,6 @@ sub _keep_pulsing {
 
         # forward
         foreach my $index ( 1 .. $size ) {
-
             my $mark = $rotate ? $mark[ $index % 8 ] : q{=};
             printf "$name...[%s%s%s]", q{ } x ( $index - 1 ), $mark,
               q{ } x ( $size - $index );
@@ -225,7 +214,6 @@ sub _keep_pulsing {
 
         # backward
         foreach my $index ( 1 .. $size ) {
-
             my $mark = $rotate ? $mark[ ( $index % 8 ) * -1 ] : q{=};
             printf "$name...[%s%s%s]", q{ } x ( $size - $index ), $mark,
               q{ } x ( $index - 1 );
@@ -233,7 +221,6 @@ sub _keep_pulsing {
             printf "\r";
             last INFINITE if ( $self->_is_enough() );
             $self->_sleep();
-
         }
 
     }
@@ -253,18 +240,9 @@ sub stop {
 }
 
 sub _report {
-    my $self   = shift;
-    my $name   = $self->get_name();
-    my $length = length($name);
-
-    if ( $length > 0 ) {
-        printf "$name%sDone%s\n", q{.} x ( 35 - $length ), q{ } x 43;
-        return 1;
-    }
-    else {
-        warn "cannot print progress without positive length for '$name'";
-        return 0;
-    }
+    my $self = shift;
+    printf "%s%sDone%s\n", $self->get_name(), q{.} x ( $self->get_size + 1 ), ' ';
+    return 1;
 }
 
 sub _sleep {

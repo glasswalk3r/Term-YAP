@@ -1,5 +1,4 @@
 package Term::YAP::iThread;
-
 use strict;
 use warnings;
 use threads 2.01;
@@ -7,8 +6,8 @@ use Thread::Queue 3.05;
 use Types::Standard 1.000005 qw(InstanceOf Bool);
 use Moo 2.000002;
 use namespace::clean 0.26;
-
 extends 'Term::YAP';
+# VERSION
 
 =head1 NAME
 
