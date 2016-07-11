@@ -17,21 +17,19 @@ use namespace::clean 0.26;
 =head1 SYNOPSIS
 
     use Term::YAP;
-	
-	my $yap = Term::YAP->new( { name => 'Checking', rotate => 0, time => 1 } );
-	
+    my $yap = Term::YAP->new( { name => 'Checking', rotate => 0, time => 1 } );
     $yap->start(); # start the pulse
     # do something between
     $yap->stop() # stop it
 
 =head1 DESCRIPTION
 
-Term::YAP is a L<Moo> based class to implement a "pulse" bar in a terminal. A pulse bar does not shows any progress of the task being executed
-but at least shows that the program is working instead of showing nothing for user.
+Term::YAP is a L<Moo> based class to implement a "pulse" bar in a terminal. A pulse bar doesn't actually keep track of progress from any task being executed
+but at least shows that the program is working instead of nothing for the end user.
 
 This is the parent class and some methods were not implemented, you probably want to look for subclasses to get an implementation.
 
-This module was shamelessly copied from L<Term::Pulse>. Sorry, couldn't get my bug/patch approved. :-)
+This module started as a shamelessly copy from L<Term::Pulse>, nowadays it keeps the same features but with a different implementation.
 
 =head1 EXPORT
 
