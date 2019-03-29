@@ -120,18 +120,31 @@ has running => (
 );
 
 =head2 output
-  Defines a L<IO::File> object where the output is written. Created to make it
+
+Defines a L<IO::File> object where the output is written. Created to make it
 easier for testing, specially because the output is designed for better view
 in a terminal.
-  Defaults to C<*STDOUT{IO}>.
+
+Defaults to C<*STDOUT{IO}>.
+
 =cut
+
+has _is_output_stdout => (
+    is      => 'rwp',
+    isa     => Bool,
+    default => sub { 0 },
+    lazy    => 0
+);
 
 has output => (
     is      => 'ro',
     isa     => FileHandle,
     reader  => 'to_output',
-    writer  => '_set_output',
-    default => sub { *STDOUT{IO} }
+    default => sub {
+        my $self = shift;
+        $self->_set_is_output_stdout(1);
+        return *STDOUT{IO};
+    }
 );
 
 =head2 debug
@@ -246,7 +259,6 @@ sub _keep_pulsing {
     }
 
     return ( time() - $self->_get_start() );
-
 }
 
 =head2 stop
@@ -256,16 +268,21 @@ Stop the pulse and return elapsed time.
 =cut
 
 sub stop {
-    return shift->_report;
+    my $self = shift;
+    $self->_report;
+
+    unless ( $self->_is_output_stdout ) {
+        $self->to_output()->close();
+    }
+
+    return 1;
 }
 
 sub _report {
     my $self = shift;
-    my $fh   = $self->to_output;
+    my $fh   = $self->to_output();
     printf $fh "%s%sDone%s\n", $self->get_name(),
-      q{.} x ( $self->get_size + 1 ),
-      ' ';
-    return 1;
+      q{.} x ( $self->get_size + 1 ), ' ';
 }
 
 sub _sleep {
