@@ -2,6 +2,7 @@ package Term::YAP;
 use strict;
 use warnings;
 use Carp;
+
 # VERSION
 
 =head1 NAME
@@ -10,7 +11,7 @@ Term::YAP - show pulsed progress bar in terminal
 
 =cut
 
-use Types::Standard 1.000005 qw(Str Int Bool Num);
+use Types::Standard 1.000005 qw(Str Int Bool Num FileHandle);
 use Time::HiRes 1.9726 qw(usleep time);
 use Moo 2.000002;
 use namespace::clean 0.26;
@@ -25,12 +26,16 @@ use namespace::clean 0.26;
 
 =head1 DESCRIPTION
 
-Term::YAP is a L<Moo> based class to implement a "pulse" bar in a terminal. A pulse bar doesn't actually keep track of progress from any task being executed
-but at least shows that the program is working instead of nothing for the end user.
+Term::YAP is a L<Moo> based class to implement a "pulse" bar in a terminal. A
+pulse bar doesn't actually keep track of progress from any task being executed
+but at least shows that the program is working in something instead of showing
+nothing for the end user.
 
-This is the parent class and some methods were not implemented, you probably want to look for subclasses to get an implementation.
+This is the parent class and some methods were not implemented, you probably
+want to look for subclasses to get an implementation.
 
-This module started as a shamelessly copy from L<Term::Pulse>, nowadays it keeps the same features but with a different implementation.
+This module started as a shamelessly copy from L<Term::Pulse>, nowadays it
+keeps the same features but with a different implementation.
 
 =head1 EXPORT
 
@@ -114,9 +119,25 @@ has running => (
     default => 0
 );
 
+=head2 output
+  Defines a L<IO::File> object where the output is written. Created to make it
+easier for testing, specially because the output is designed for better view
+in a terminal.
+  Defaults to C<*STDOUT{IO}>.
+=cut
+
+has output => (
+    is      => 'ro',
+    isa     => FileHandle,
+    reader  => 'to_output',
+    writer  => '_set_output',
+    default => sub { *STDOUT{IO} }
+);
+
 =head2 debug
 
-Boolean. If true, additional messages (which you mangle output) will by printed.
+Boolean. If true, additional messages (which will mangle output) will by
+printed to C<STDOUT>.
 
 Defaults to false.
 
@@ -196,16 +217,17 @@ sub _keep_pulsing {
     my $time   = $self->show_time();
     my $start  = time();
     $self->_set_start($start);
+    my $fh = $self->to_output();
 
   INFINITE: while (1) {
 
         # forward
         foreach my $index ( 1 .. $size ) {
             my $mark = $rotate ? $mark[ $index % 8 ] : q{=};
-            printf "$name...[%s%s%s]", q{ } x ( $index - 1 ), $mark,
+            printf $fh "$name...[%s%s%s]", q{ } x ( $index - 1 ), $mark,
               q{ } x ( $size - $index );
-            printf " (%f sec elapsed)", ( time - $start ) if $time;
-            printf "\r";
+            printf $fh " (%f sec elapsed)", ( time - $start ) if $time;
+            printf $fh "\r";
             last INFINITE if ( $self->_is_enough() );
             $self->_sleep();
         }
@@ -213,10 +235,10 @@ sub _keep_pulsing {
         # backward
         foreach my $index ( 1 .. $size ) {
             my $mark = $rotate ? $mark[ ( $index % 8 ) * -1 ] : q{=};
-            printf "$name...[%s%s%s]", q{ } x ( $size - $index ), $mark,
+            printf $fh "$name...[%s%s%s]", q{ } x ( $size - $index ), $mark,
               q{ } x ( $index - 1 );
-            printf " (%f sec elapsed)", ( time - $start ) if $time;
-            printf "\r";
+            printf $fh " (%f sec elapsed)", ( time - $start ) if $time;
+            printf $fh "\r";
             last INFINITE if ( $self->_is_enough() );
             $self->_sleep();
         }
@@ -239,7 +261,10 @@ sub stop {
 
 sub _report {
     my $self = shift;
-    printf "%s%sDone%s\n", $self->get_name(), q{.} x ( $self->get_size + 1 ), ' ';
+    my $fh   = $self->to_output;
+    printf $fh "%s%sDone%s\n", $self->get_name(),
+      q{.} x ( $self->get_size + 1 ),
+      ' ';
     return 1;
 }
 
@@ -270,7 +295,8 @@ L<Term::Pulse> was originally created by Yen-Liang Chen, E<lt>alec at cpan.comE<
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2015 of Alceu Rodrigues de Freitas Junior, E<lt>arfreitas@cpan.orgE<gt>
+This software is copyright (c) 2015 of Alceu Rodrigues de Freitas Junior,
+E<lt>arfreitas@cpan.orgE<gt>
 
 This file is part of Term-YAP distribution.
 
